@@ -88,18 +88,55 @@ async def test_schedule_sensors(
     assert change.attributes["next_preset"] == "eco"
 
 
-async def test_options_flow_links_helper(hass: HomeAssistant, mock_entry, patch_client):
-    await _setup(hass, mock_entry, link=False)
-    result = await hass.config_entries.options.async_init(mock_entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {
-            "poll_interval": 60,
-            "boost_minutes": 60,
-            "Schedule helper: Living room": HELPER,
-        },
+SELECT = "select.living_room_schedule_helper"
+
+
+async def _select(hass: HomeAssistant, option: str) -> None:
+    await hass.services.async_call(
+        "select", "select_option", {ATTR_ENTITY_ID: SELECT, "option": option}, blocking=True
     )
     await hass.async_block_till_done()
+
+
+async def test_select_links_helper_without_reload(
+    hass: HomeAssistant, mock_entry, patch_client
+):
+    await _setup(hass, mock_entry, link=False)
+    state = hass.states.get(SELECT)
+    assert state.state == "none"
+    assert state.attributes["options"] == ["none", "Heating"]
+    coordinator = mock_entry.runtime_data
+
+    await _select(hass, "Heating")
+    assert mock_entry.options[CONF_SCHEDULE_HELPERS] == {RAD_ID: HELPER}
+    assert hass.states.get(SELECT).state == "Heating"
+    assert len(_schedule_uploads(patch_client)) == 1  # uploaded right away
+    assert mock_entry.runtime_data is coordinator  # no reload
+
+
+async def test_select_unlinks_helper(hass: HomeAssistant, mock_entry, patch_client):
+    await _setup(hass, mock_entry)
+    assert hass.states.get(SELECT).state == "Heating"
+    await _select(hass, "none")
+    assert mock_entry.options[CONF_SCHEDULE_HELPERS] == {}
+    assert hass.states.get(SELECT).state == "none"
+
+
+async def test_select_follows_new_helpers(hass: HomeAssistant, mock_entry, patch_client):
+    await _setup(hass, mock_entry, link=False)
+    hass.states.async_set("schedule.holiday", "off", {"friendly_name": "Holiday"})
+    await hass.async_block_till_done()
+    assert hass.states.get(SELECT).attributes["options"] == ["none", "Heating", "Holiday"]
+
+
+async def test_options_flow_keeps_helper_links(hass: HomeAssistant, mock_entry, patch_client):
+    await _setup(hass, mock_entry)
+    result = await hass.config_entries.options.async_init(mock_entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        result["flow_id"], {"poll_interval": 120, "boost_minutes": 60}
+    )
+    await hass.async_block_till_done()
+    assert mock_entry.options["poll_interval"] == 120
     assert mock_entry.options[CONF_SCHEDULE_HELPERS] == {RAD_ID: HELPER}
 
 

@@ -43,8 +43,8 @@ Everything is configured through the UI:
 
 - **Setup:** enter your ATC Cala email and password. The integration validates the login and
   discovers your installation automatically.
-- **Options** (⚙️ on the integration): polling interval (default 60 s), default Boost duration
-  (default 60 min) and an optional **schedule helper** per radiator (see below).
+- **Options** (⚙️ on the integration): polling interval (default 60 s) and default Boost duration
+  (default 60 min).
 - **Re-authentication:** if your password changes, Home Assistant prompts you to re-enter it.
 
 ## Entities
@@ -66,7 +66,8 @@ override whose expiry is computed from the cloud's own clock.
 
 Two `sensor` entities per radiator describe its own weekly schedule: **Scheduled preset**
 (Comfort/Eco right now) and **Next schedule change** (timestamp, with the upcoming preset as an
-attribute).
+attribute). A **Schedule helper** `select` (under the device's Configuration) chooses which
+schedule helper, if any, drives that schedule.
 
 More entity types (energy sensors, open-window, keypad lock, brightness, power limit) are planned
 as follow-ups; see [`API.md`](API.md) §11.
@@ -78,7 +79,9 @@ keeps working when Home Assistant or the internet is down. To edit it from Home 
 
 1. Create a **Schedule** helper (Settings → Devices & services → Helpers) and draw the Comfort
    periods. Everything outside the blocks is Eco.
-2. In the integration's options, pick that helper for one or more radiators.
+2. On each radiator's device page, set **Schedule helper** (under Configuration) to that helper.
+   Several radiators can share one helper; choosing **None** unlinks it and the radiator keeps
+   its last schedule.
 
 On every poll the integration compares each linked radiator's schedule with its helper and uploads
 the days that differ, so edits apply within one polling interval (immediately when the helper's
@@ -87,7 +90,8 @@ app to a linked radiator are overwritten. Put the radiator in the **Schedule** p
 follow the program.
 
 Automations can still override it — e.g. switch to Eco when everyone is away and back to Schedule
-on return; if Home Assistant goes down the radiators simply keep following the weekly program.
+on return, or switch the Schedule helper select to a "Holiday" helper during school breaks; if Home
+Assistant goes down the radiators simply keep following the weekly program.
 
 ## Removing the integration
 

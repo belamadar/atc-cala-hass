@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 from time import monotonic
 from datetime import datetime, time, timedelta
 
@@ -18,8 +20,15 @@ from pyatccala import (
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE
-from homeassistant.core import HomeAssistant
+from homeassistant.core import (
+    CALLBACK_TYPE,
+    Event,
+    EventStateChangedData,
+    HomeAssistant,
+    callback,
+)
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -72,11 +81,52 @@ class AtcCalaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Radiator]]):
         # cloud catches up; helpers we've already warned about.
         self._uploaded: dict[str, tuple[dict[str, str], float]] = {}
         self._warned: set[str] = set()
+        self._unsub_helpers: CALLBACK_TYPE | None = None
+        #: Options other than the helper links; changing these needs a reload.
+        self.reload_options = options_requiring_reload(config_entry.options)
 
     @property
     def schedule_helpers(self) -> dict[str, str]:
         """Linked schedule helpers: {IdRadiador: entity_id}."""
         return self.config_entry.options.get(CONF_SCHEDULE_HELPERS, {})
+
+    @callback
+    def async_link_schedule_helper(self, radiator_id: str, entity_id: str | None) -> None:
+        """Link (or with None, unlink) a schedule helper; persisted in the entry options."""
+        helpers = dict(self.schedule_helpers)
+        if entity_id:
+            helpers[radiator_id] = entity_id
+        else:
+            helpers.pop(radiator_id, None)
+        self.hass.config_entries.async_update_entry(
+            self.config_entry,
+            options={**self.config_entry.options, CONF_SCHEDULE_HELPERS: helpers},
+        )
+
+    @callback
+    def async_track_schedule_helpers(self) -> None:
+        """(Re)subscribe to state changes of the linked helpers.
+
+        A helper switching on/off triggers an immediate sync; edits that don't change its
+        state are still picked up by the regular poll, which compares the full week.
+        """
+        self.async_untrack_schedule_helpers()
+        if helpers := sorted(set(self.schedule_helpers.values())):
+            self._unsub_helpers = async_track_state_change_event(
+                self.hass, helpers, self._async_helper_changed
+            )
+
+    @callback
+    def async_untrack_schedule_helpers(self) -> None:
+        if self._unsub_helpers is not None:
+            self._unsub_helpers()
+            self._unsub_helpers = None
+
+    @callback
+    def _async_helper_changed(self, event: Event[EventStateChangedData]) -> None:
+        self.config_entry.async_create_background_task(
+            self.hass, self.async_request_refresh(), "atc_cala_schedule_sync"
+        )
 
     async def _async_update_data(self) -> dict[str, Radiator]:
         try:
@@ -196,6 +246,11 @@ class AtcCalaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Radiator]]):
         if key not in self._warned:
             self._warned.add(key)
             _LOGGER.warning(msg, *args)
+
+
+def options_requiring_reload(options: Mapping[str, Any]) -> dict[str, Any]:
+    """Options other than the schedule helper links (those apply without a reload)."""
+    return {k: v for k, v in options.items() if k != CONF_SCHEDULE_HELPERS}
 
 
 def _as_time(value: time | str) -> time:
