@@ -35,6 +35,26 @@
         "data": {
           "poll_interval": "Polling interval (seconds)",
           "boost_minutes": "Default boost duration (minutes)"
+        },
+        "description": "Link a schedule helper to a radiator to edit its weekly schedule in Home Assistant: the helper's time blocks become Comfort, everything else Eco, and are uploaded to the radiator, which keeps running the schedule on its own. Edits made in the ATC Cala app are overwritten. Times are rounded to the radiators' 30-minute slots."
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "scheduled_preset": {
+        "name": "Scheduled preset",
+        "state": {
+          "comfort": "Comfort",
+          "eco": "Eco"
+        }
+      },
+      "next_schedule_change": {
+        "name": "Next schedule change",
+        "state_attributes": {
+          "next_preset": {
+            "name": "Next preset"
+          }
         }
       }
     }

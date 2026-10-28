@@ -1,11 +1,19 @@
 {
   "domain": "atc_cala",
   "name": "ATC Cala",
-  "codeowners": ["@atc-cala-hass"],
+  "after_dependencies": [
+    "schedule"
+  ],
+  "codeowners": [
+    "@belamadar"
+  ],
   "config_flow": true,
-  "documentation": "https://github.com/atc-cala-hass/atc-cala-hass",
+  "documentation": "https://gitlab.com/belamadar/atc-cala-hass",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
-  "requirements": ["pyatccala==0.2.0"],
-  "version": "0.1.0"
+  "issue_tracker": "https://gitlab.com/belamadar/atc-cala-hass/-/issues",
+  "requirements": [
+    "pyatccala==0.3.0"
+  ],
+  "version": "0.2.0"
 }

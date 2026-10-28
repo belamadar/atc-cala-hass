@@ -12,6 +12,8 @@ CONF_INSTALLATION_ID: Final = "installation_id"
 CONF_INSTALLATION_NAME: Final = "installation_name"
 CONF_POLL_INTERVAL: Final = "poll_interval"
 CONF_BOOST_MINUTES: Final = "boost_minutes"
+#: Options: {IdRadiador: schedule helper entity_id} whose blocks are synced as Comfort.
+CONF_SCHEDULE_HELPERS: Final = "schedule_helpers"
 
 DEFAULT_POLL_INTERVAL: Final = 60  # seconds
 DEFAULT_BOOST_MINUTES: Final = 60
@@ -23,6 +25,9 @@ MAX_POLL_INTERVAL: Final = 3600
 MIN_TEMP: Final = 5.0
 MAX_TEMP: Final = 30.0
 TEMP_STEP: Final = 0.5
+
+# Don't re-upload an unchanged schedule more often than this while the cloud catches up.
+SCHEDULE_RESYNC_INTERVAL: Final = timedelta(minutes=10)
 
 DEFAULT_SCAN_INTERVAL: Final = timedelta(seconds=DEFAULT_POLL_INTERVAL)
 

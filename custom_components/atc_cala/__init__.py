@@ -5,13 +5,14 @@ from __future__ import annotations
 from pyatccala import AtcCalaClient
 
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.event import async_track_state_change_event
 
 from .const import CONF_INSTALLATION_ID
 from .coordinator import AtcCalaConfigEntry, AtcCalaDataUpdateCoordinator
 
-PLATFORMS: list[Platform] = [Platform.CLIMATE]
+PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: AtcCalaConfigEntry) -> bool:
@@ -28,6 +29,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: AtcCalaConfigEntry) -> b
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    if helpers := list(set(coordinator.schedule_helpers.values())):
+        # React to helper changes right away; edits that don't change its state are
+        # still picked up by the regular poll, which compares the full week.
+        @callback
+        def _helper_changed(event: Event[EventStateChangedData]) -> None:
+            entry.async_create_background_task(
+                hass, coordinator.async_request_refresh(), "atc_cala_schedule_sync"
+            )
+
+        entry.async_on_unload(
+            async_track_state_change_event(hass, helpers, _helper_changed)
+        )
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     return True
 

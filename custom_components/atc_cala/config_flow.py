@@ -18,12 +18,14 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
 
 from .const import (
     CONF_BOOST_MINUTES,
     CONF_INSTALLATION_ID,
     CONF_INSTALLATION_NAME,
     CONF_POLL_INTERVAL,
+    CONF_SCHEDULE_HELPERS,
     DEFAULT_BOOST_MINUTES,
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
@@ -131,24 +133,53 @@ class AtcCalaConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class AtcCalaOptionsFlow(OptionsFlow):
-    """Options: poll interval and boost duration."""
+    """Options: poll interval, boost duration and per-radiator schedule helpers."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        if user_input is not None:
-            return self.async_create_entry(data=user_input)
         options = self.config_entry.options
-        schema = vol.Schema(
-            {
-                vol.Optional(
-                    CONF_POLL_INTERVAL,
-                    default=options.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL),
-                ): vol.All(cv.positive_int, vol.Range(min=MIN_POLL_INTERVAL, max=MAX_POLL_INTERVAL)),
-                vol.Optional(
-                    CONF_BOOST_MINUTES,
-                    default=options.get(CONF_BOOST_MINUTES, DEFAULT_BOOST_MINUTES),
-                ): vol.All(cv.positive_int, vol.Range(min=5, max=1440)),
+        # One optional helper picker per radiator, labelled with the radiator's name.
+        radiator_fields = self._radiator_fields()
+        if user_input is not None:
+            helpers = {
+                radiator_id: user_input[field]
+                for field, radiator_id in radiator_fields.items()
+                if user_input.get(field)
             }
-        )
-        return self.async_show_form(step_id="init", data_schema=schema)
+            return self.async_create_entry(
+                data={
+                    CONF_POLL_INTERVAL: user_input[CONF_POLL_INTERVAL],
+                    CONF_BOOST_MINUTES: user_input[CONF_BOOST_MINUTES],
+                    CONF_SCHEDULE_HELPERS: helpers,
+                }
+            )
+
+        current = options.get(CONF_SCHEDULE_HELPERS, {})
+        schema: dict[Any, Any] = {
+            vol.Optional(
+                CONF_POLL_INTERVAL,
+                default=options.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL),
+            ): vol.All(cv.positive_int, vol.Range(min=MIN_POLL_INTERVAL, max=MAX_POLL_INTERVAL)),
+            vol.Optional(
+                CONF_BOOST_MINUTES,
+                default=options.get(CONF_BOOST_MINUTES, DEFAULT_BOOST_MINUTES),
+            ): vol.All(cv.positive_int, vol.Range(min=5, max=1440)),
+        }
+        for field, radiator_id in radiator_fields.items():
+            # suggested_value (not default) so the picker can be cleared to unlink.
+            schema[
+                vol.Optional(field, description={"suggested_value": current.get(radiator_id)})
+            ] = EntitySelector(EntitySelectorConfig(domain="schedule"))
+        return self.async_show_form(step_id="init", data_schema=vol.Schema(schema))
+
+    def _radiator_fields(self) -> dict[str, str]:
+        """Form field name -> IdRadiador for the radiators currently known."""
+        coordinator = getattr(self.config_entry, "runtime_data", None)
+        radiators = coordinator.data.values() if coordinator and coordinator.data else []
+        names = [r.name or r.id_radiator for r in radiators]
+        fields: dict[str, str] = {}
+        for radiator, name in zip(radiators, names):
+            label = name if names.count(name) == 1 else f"{name} ({radiator.id_radiator[-4:]})"
+            fields[f"Schedule helper: {label}"] = radiator.id_radiator
+        return fields

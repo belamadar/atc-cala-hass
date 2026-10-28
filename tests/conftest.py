@@ -16,6 +16,7 @@ from custom_components.atc_cala.const import (
     DOMAIN,
 )
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.util import dt as dt_util
 
 INSTALLATION_PAYLOAD = {
     "datos": {
@@ -76,6 +77,8 @@ class FakeClient:
         return [Installation.from_dict(deepcopy(INSTALLATION_PAYLOAD))]
 
     async def get_radiators(self, installation_id, id_zone=0):
+        # HoraActual is the installation's local "now"; use HA's clock (same timezone).
+        self._radiator["HoraActual"] = dt_util.now().replace(tzinfo=None).isoformat()
         return [Radiator.from_dict(deepcopy(self._radiator))]
 
     async def put_radiator_changes(self, heaters, cambios, zones=None):
@@ -102,6 +105,7 @@ class FakeClient:
     async_set_eco_temperature = AtcCalaClient.async_set_eco_temperature
     async_set_eco_offset = AtcCalaClient.async_set_eco_offset
     async_set_boost_temperature = AtcCalaClient.async_set_boost_temperature
+    async_set_schedule = AtcCalaClient.async_set_schedule
 
     async def close(self):
         return None
