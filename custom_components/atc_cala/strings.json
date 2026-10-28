@@ -1,0 +1,42 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ATC Cala",
+        "description": "Sign in with your ATC Cala app account.",
+        "data": {
+          "username": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate ATC Cala",
+        "description": "The password for {username} is no longer valid. Enter it again.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password.",
+      "cannot_connect": "Failed to connect to the ATC Cala service.",
+      "no_installations": "No installations were found on this account.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This account is already configured.",
+      "reauth_successful": "Re-authentication was successful."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ATC Cala options",
+        "data": {
+          "poll_interval": "Polling interval (seconds)",
+          "boost_minutes": "Default boost duration (minutes)"
+        }
+      }
+    }
+  }
+}

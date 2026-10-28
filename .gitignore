@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Home Assistant test artifacts
+.coverage
+htmlcov/
+
+# Local captures / exports (keep API.md, not the raw material)
+flows
+flows(*)
+*.pcap
+*-local-command-caveat*.txt
+
+# Local Claude Code settings
+.claude/

@@ -1,0 +1,60 @@
+# Home Assistant integration quality scale checklist.
+# Tracks progress toward the Bronze tier required for home-assistant/core.
+rules:
+  # -- Bronze ------------------------------------------------------------------
+  config-flow:
+    status: done
+    comment: UI config flow with username/password; see config_flow.py.
+  config-flow-test-coverage:
+    status: done
+    comment: >-
+      tests/test_config_flow.py covers user success, invalid_auth,
+      cannot_connect, duplicate abort, and reauth.
+  test-before-configure:
+    status: done
+    comment: _validate() logs in and lists installations before creating the entry.
+  test-before-setup:
+    status: done
+    comment: async_config_entry_first_refresh() aborts setup on auth/connection failure.
+  unique-config-entry:
+    status: done
+    comment: unique_id set from the account idUser; duplicates abort.
+  entity-unique-id:
+    status: done
+  has-entity-name:
+    status: done
+  entity-event-setup:
+    status: done
+    comment: Entities derive from CoordinatorEntity; no manual subscriptions.
+  runtime-data:
+    status: done
+    comment: The coordinator is stored on entry.runtime_data.
+  appropriate-polling:
+    status: done
+    comment: DataUpdateCoordinator, default 60s, configurable via options.
+  common-modules:
+    status: done
+    comment: coordinator.py and entity.py hold the shared patterns.
+  action-setup:
+    status: exempt
+    comment: The integration registers no custom actions/services in v1.
+  docs-actions:
+    status: exempt
+    comment: No custom actions to document.
+  docs-high-level-description:
+    status: done
+    comment: README.md.
+  docs-installation-instructions:
+    status: done
+    comment: README.md.
+  docs-removal-instructions:
+    status: done
+    comment: README.md "Removing the integration".
+  dependency-transparency:
+    status: todo
+    comment: >-
+      pyatccala must be published to PyPI (source dist + issue tracker) before the
+      core PR. It is our own library; source lives alongside this repo.
+  brands:
+    status: todo
+    comment: Submit icon/logo to home-assistant/brands before the core PR.

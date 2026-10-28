@@ -1,0 +1,11 @@
+{
+  "domain": "atc_cala",
+  "name": "ATC Cala",
+  "codeowners": ["@atc-cala-hass"],
+  "config_flow": true,
+  "documentation": "https://github.com/atc-cala-hass/atc-cala-hass",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "requirements": ["pyatccala==0.2.0"],
+  "version": "0.1.0"
+}
