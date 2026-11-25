@@ -117,9 +117,9 @@ is stored outside the config entry.
 ## Development
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e ../pyatccala[test]                       # the library + its test deps
-pip install pytest-homeassistant-custom-component ruff   # the integration test harness
+python3.14 -m venv .venv && source .venv/bin/activate   # HA 2026.11 needs Python 3.14.2+
+pip install -r requirements_test.txt ruff              # pytest-homeassistant + pyatccala
+pip install -e ../pyatccala[test]                       # optional: a local library checkout
 
 # Run the two test suites separately (they are separate projects):
 (cd ../pyatccala && pytest -p no:homeassistant)          # library

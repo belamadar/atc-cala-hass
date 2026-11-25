@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 from pyatccala import AtcCalaClient, Consumption, Installation, Radiator
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.atc_cala.const import (
     CONF_INSTALLATION_ID,

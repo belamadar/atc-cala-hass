@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from freezegun.api import FrozenDateTimeFactory
 from pyatccala import AtcCalaConnectionError
-from pytest_homeassistant_custom_component.common import async_fire_time_changed
+from pytest_homeassistant.common import async_fire_time_changed
 
 from homeassistant.components.sensor import ATTR_STATE_CLASS, SensorStateClass
 from homeassistant.const import (

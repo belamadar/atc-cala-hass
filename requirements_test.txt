@@ -1,0 +1,4 @@
+# Integration test harness. pytest-homeassistant's version tracks the Home Assistant release
+# it pins, so bump it together with the minimum HA version in hacs.json.
+pytest-homeassistant==2026.11.3
+pyatccala==0.4.0
