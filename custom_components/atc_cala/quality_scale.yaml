@@ -51,10 +51,12 @@ rules:
     status: done
     comment: README.md "Removing the integration".
   dependency-transparency:
-    status: todo
+    status: done
     comment: >-
-      pyatccala must be published to PyPI (source dist + issue tracker) before the
-      core PR. It is our own library; source lives alongside this repo.
+      pyatccala is published to PyPI with a source distribution and issue tracker,
+      built by GitLab CI from the public repository on version tags.
   brands:
     status: todo
-    comment: Submit icon/logo to home-assistant/brands before the core PR.
+    comment: >-
+      custom_components/atc_cala/brand/icon.png covers the Marketplace. A core PR
+      still needs the images submitted to home-assistant/brands.

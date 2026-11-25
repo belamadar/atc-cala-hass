@@ -2,14 +2,17 @@
 
 A native Home Assistant integration for **ATC Cala** WiFi electric radiators (Grupo Ferroli
 cloud). Adds a `climate` entity per radiator with target temperature, on/off, the four device
-modes as presets, and a timed Boost — set up entirely through the UI, no MQTT and no HACS.
+modes as presets, and a timed Boost, plus schedule and energy sensors. Everything is set up
+through the UI; no MQTT or YAML is needed.
+
+[![Open in the Home Assistant Marketplace](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=belamadar&repository=atc-cala-hass&category=integration)
 
 It is built to [Home Assistant core standards](https://developers.home-assistant.io/docs/creating_component_index)
 so it can be submitted upstream, but runs today as a custom component.
 
 ## Architecture
 
-- **[`pyatccala`](../pyatccala)** — a standalone async Python library that talks to the cloud API
+- **[`pyatccala`](https://gitlab.com/belamadar/pyatccala)** — a standalone async Python library that talks to the cloud API
   (OAuth login + token refresh, radiator polling, control). Home Assistant core requires
   device/cloud communication to live in a separate PyPI library; this is it.
 - **`custom_components/atc_cala`** — this integration, which depends on `pyatccala`.
@@ -23,19 +26,25 @@ The reverse-engineered cloud protocol is documented in [`API.md`](API.md).
 
 ## Installation
 
-Development happens on [GitLab](https://gitlab.com/belamadar/atc-cala-hass); a read-only mirror on
-GitHub exists only so HACS can install it.
+**From the Marketplace** (Home Assistant's built-in store for community integrations, cards and themes):
 
-**With HACS:** HACS → ⋮ → **Custom repositories** → add
-`https://github.com/belamadar/atc-cala-hass` as type **Integration**, install **ATC Cala**, and
-restart Home Assistant.
+1. Click the **Open in the Home Assistant Marketplace** button above, or add
+   `https://github.com/belamadar/atc-cala-hass` to the Marketplace as an **Integration**
+   repository.
+2. Install **ATC Cala** and restart Home Assistant.
 
+Then go to **Settings → Devices & services → Add integration**, search for **ATC Cala**, and sign
+in. Home Assistant installs the [`pyatccala`](https://pypi.org/project/pyatccala/) library from
+PyPI automatically.
+
+<!-- ha-marketplace:exclude-start -->
 **Manually:** copy `custom_components/atc_cala` into your Home Assistant
-`config/custom_components/` folder and restart Home Assistant.
+`config/custom_components/` folder, restart Home Assistant, and add the integration as above.
 
-Either way, Home Assistant installs the [`pyatccala`](https://pypi.org/project/pyatccala/) library
-from PyPI automatically. Then go to **Settings → Devices & services → Add integration**, search for
-**ATC Cala**, and sign in.
+Development happens on [GitLab](https://gitlab.com/belamadar/atc-cala-hass); the
+[GitHub repository](https://github.com/belamadar/atc-cala-hass) is a mirror that the Marketplace
+installs from.
+<!-- ha-marketplace:exclude-end -->
 
 ## Configuration
 
@@ -108,6 +117,7 @@ Delete the integration from **Settings → Devices & services** (this removes it
 devices), then remove the `custom_components/atc_cala` folder and restart Home Assistant. No data
 is stored outside the config entry.
 
+<!-- ha-marketplace:exclude-start -->
 ## Development
 
 ```bash
@@ -124,6 +134,7 @@ ruff check custom_components/atc_cala
 
 `pyatccala` and the integration are intentionally decoupled; the library has no Home Assistant
 dependency and can be used on its own.
+<!-- ha-marketplace:exclude-end -->
 
 ## Status
 
