@@ -63,6 +63,17 @@
             "name": "Next preset"
           }
         }
+      },
+      "energy_today": {
+        "name": "Energy today",
+        "state_attributes": {
+          "off_peak_energy": {
+            "name": "Off-peak energy"
+          },
+          "peak_energy": {
+            "name": "Peak energy"
+          }
+        }
       }
     }
   }

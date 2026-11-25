@@ -69,8 +69,17 @@ Two `sensor` entities per radiator describe its own weekly schedule: **Scheduled
 attribute). A **Schedule helper** `select` (under the device's Configuration) chooses which
 schedule helper, if any, drives that schedule.
 
-More entity types (energy sensors, open-window, keypad lock, brightness, power limit) are planned
-as follow-ups; see [`API.md`](API.md) §11.
+An **Energy today** sensor (kWh) per radiator reports the cloud's estimated consumption for the
+day, the same figure the app shows under *Estimated consumption*. It resets at the installation's
+midnight, and off-peak and peak kWh are attributes. Home Assistant's statistics keep the running
+total across those resets, so add it to the Energy dashboard (Settings → Dashboards → Energy →
+Individual devices) for an hourly, daily and monthly history.
+
+The cloud reports no live power draw, only totals, and radiators seem to upload their usage every
+few hours. Expect a few steps per day rather than a smooth curve, booked when the cloud receives
+the data rather than when the radiator heated. The sensor is polled every 15 minutes.
+
+More entity types (open-window, keypad lock, brightness, power limit) are planned as follow-ups; see [`API.md`](API.md) §11.
 
 ## Weekly schedule
 

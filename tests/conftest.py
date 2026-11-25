@@ -7,7 +7,7 @@ from copy import deepcopy
 from unittest.mock import patch
 
 import pytest
-from pyatccala import AtcCalaClient, Installation, Radiator
+from pyatccala import AtcCalaClient, Consumption, Installation, Radiator
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.atc_cala.const import (
@@ -58,6 +58,18 @@ RADIATOR_PAYLOAD = {
 }
 
 
+CONSUMPTION_PAYLOAD = {
+    "ConsumoTotalValle": 0.178,
+    "ConsumoTotalPico": 0.419,
+    "PrecioValle": 0.10,
+    "PrecioPico": 0.15,
+    "detalleConsumo": [
+        {"anno": 2026, "mes": 10, "dia": 28, "hora": 6, "ConsumoValle": 0.178, "ConsumoPico": 0.0},
+        {"anno": 2026, "mes": 10, "dia": 28, "hora": 14, "ConsumoValle": 0.0, "ConsumoPico": 0.419},
+    ],
+}
+
+
 class FakeClient:
     """Stand-in for pyatccala.AtcCalaClient used across the integration."""
 
@@ -66,6 +78,9 @@ class FakeClient:
         self._radiator = deepcopy(RADIATOR_PAYLOAD)
         self.put_calls: list[tuple[list[str], list[tuple[str, str]]]] = []
         self.boost_calls: list[tuple] = []
+        self.consumption = deepcopy(CONSUMPTION_PAYLOAD)
+        #: Set to an exception instance to make consumption requests fail.
+        self.consumption_error: Exception | None = None
 
     async def login(self):
         return {"access_token": "t"}
@@ -80,6 +95,11 @@ class FakeClient:
         # HoraActual is the installation's local "now"; use HA's clock (same timezone).
         self._radiator["HoraActual"] = dt_util.now().replace(tzinfo=None).isoformat()
         return [Radiator.from_dict(deepcopy(self._radiator))]
+
+    async def get_radiator_consumption(self, id_radiator, period="diario"):
+        if self.consumption_error is not None:
+            raise self.consumption_error
+        return Consumption.from_dict(deepcopy(self.consumption), period)
 
     async def put_radiator_changes(self, heaters, cambios, zones=None):
         # Record and apply to the in-memory radiator so a refresh reflects the change.

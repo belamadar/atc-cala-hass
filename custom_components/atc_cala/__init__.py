@@ -25,6 +25,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: AtcCalaConfigEntry) -> b
         hass, entry, client, entry.data[CONF_INSTALLATION_ID]
     )
     await coordinator.async_config_entry_first_refresh()
+    # Energy is secondary: if it fails, set up anyway and let its sensors show unavailable.
+    await coordinator.energy.async_refresh()
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

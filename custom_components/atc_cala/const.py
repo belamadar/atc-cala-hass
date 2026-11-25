@@ -29,6 +29,9 @@ TEMP_STEP: Final = 0.5
 # Don't re-upload an unchanged schedule more often than this while the cloud catches up.
 SCHEDULE_RESYNC_INTERVAL: Final = timedelta(minutes=10)
 
+# The cloud fills consumption in delayed hourly buckets, so polling it faster gains nothing.
+ENERGY_POLL_INTERVAL: Final = timedelta(minutes=15)
+
 DEFAULT_SCAN_INTERVAL: Final = timedelta(seconds=DEFAULT_POLL_INTERVAL)
 
 MANUFACTURER: Final = "ATC / Grupo Ferroli"

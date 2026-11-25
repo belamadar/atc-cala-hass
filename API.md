@@ -279,7 +279,9 @@ When the radiator is in mode `P`, the active setpoint follows this map (Comfort 
   window currently detected open.
 - `ArranqueAdaptativo` / `ArranqueAdaptativoStatus` — adaptive-start feature enabled / active.
 - `Potencia` — rated power in watts (1800). `LimitePotencia` — power cap as a **percent** (100 or
-  50 seen). Energy estimate ≈ `Potencia × LimitePotencia/100` while `Calentando`.
+  50 seen). Power estimate ≈ `Potencia × LimitePotencia/100` while `Calentando`, else 0
+  (`Radiator.current_power_watts`). No measured wattage is exposed; measured energy comes from
+  the `…/consumo/` endpoints (§10).
 - `Software` — firmware (`V 1.16.25`). `Tipo` — `WIFI`.
 - `Err_Offline` / `LastOnline` — connectivity. `LastOnline: 0001-01-01T00:00:00` = never/unknown
   (the radiators were online during capture).

@@ -13,6 +13,7 @@ from pyatccala import (
     AtcCalaAuthError,
     AtcCalaClient,
     AtcCalaConnectionError,
+    Consumption,
     Radiator,
     is_slot_aligned,
     slots_from_ranges,
@@ -37,6 +38,7 @@ from .const import (
     CONF_SCHEDULE_HELPERS,
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
+    ENERGY_POLL_INTERVAL,
     SCHEDULE_RESYNC_INTERVAL,
 )
 
@@ -84,6 +86,8 @@ class AtcCalaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Radiator]]):
         self._unsub_helpers: CALLBACK_TYPE | None = None
         #: Options other than the helper links; changing these needs a reload.
         self.reload_options = options_requiring_reload(config_entry.options)
+        #: Today's measured energy per radiator, polled less often than the state.
+        self.energy = AtcCalaEnergyCoordinator(hass, config_entry, client, self)
 
     @property
     def schedule_helpers(self) -> dict[str, str]:
@@ -246,6 +250,46 @@ class AtcCalaDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Radiator]]):
         if key not in self._warned:
             self._warned.add(key)
             _LOGGER.warning(msg, *args)
+
+
+class AtcCalaEnergyCoordinator(DataUpdateCoordinator[dict[str, Consumption]]):
+    """Polls today's consumption for each radiator, keyed by IdRadiador.
+
+    Separate from the state coordinator: it costs one request per radiator and the cloud
+    only updates it in delayed hourly buckets, so it runs on a much slower interval.
+    """
+
+    config_entry: AtcCalaConfigEntry
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: AtcCalaConfigEntry,
+        client: AtcCalaClient,
+        state: AtcCalaDataUpdateCoordinator,
+    ) -> None:
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=f"{DOMAIN}_energy",
+            config_entry=config_entry,
+            update_interval=ENERGY_POLL_INTERVAL,
+        )
+        self.client = client
+        self._state = state
+
+    async def _async_update_data(self) -> dict[str, Consumption]:
+        radiator_ids = list(self._state.data or {})
+        try:
+            await self.client.async_ensure_token()
+            # One at a time: a home has a handful of radiators and this runs rarely.
+            return {
+                rid: await self.client.get_radiator_consumption(rid) for rid in radiator_ids
+            }
+        except AtcCalaAuthError as err:
+            raise ConfigEntryAuthFailed(str(err)) from err
+        except AtcCalaConnectionError as err:
+            raise UpdateFailed(str(err)) from err
 
 
 def options_requiring_reload(options: Mapping[str, Any]) -> dict[str, Any]:
