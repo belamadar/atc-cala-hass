@@ -40,10 +40,6 @@ PyPI automatically.
 <!-- ha-marketplace:exclude-start -->
 **Manually:** copy `custom_components/atc_cala` into your Home Assistant
 `config/custom_components/` folder, restart Home Assistant, and add the integration as above.
-
-Development happens on [GitLab](https://gitlab.com/belamadar/atc-cala-hass); the
-[GitHub repository](https://github.com/belamadar/atc-cala-hass) is a mirror that the Marketplace
-installs from.
 <!-- ha-marketplace:exclude-end -->
 
 ## Configuration
