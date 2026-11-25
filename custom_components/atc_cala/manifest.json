@@ -4,6 +4,10 @@
   "after_dependencies": [
     "schedule"
   ],
+  "categories": [
+    "climate.thermostats_heating",
+    "energy.meters_monitoring"
+  ],
   "codeowners": [
     "@belamadar"
   ],
