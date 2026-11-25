@@ -52,7 +52,7 @@ class AtcCalaClimate(AtcCalaEntity, ClimateEntity):
     """A single ATC Cala radiator as a climate entity."""
 
     _attr_name = None  # the device name is the entity name (has_entity_name)
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]
     _attr_preset_modes = PRESET_MODES
     _attr_min_temp = MIN_TEMP
@@ -73,11 +73,11 @@ class AtcCalaClimate(AtcCalaEntity, ClimateEntity):
     # -- state (read) --------------------------------------------------------------
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         return self.radiator.current_temperature if self.radiator else None
 
     @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         return self.radiator.target_temperature if self.radiator else None
 
     @property

@@ -103,3 +103,16 @@ async def test_boost_preset(hass: HomeAssistant, mock_entry, patch_client):
     assert len(patch_client.boost_calls) == 1
     await hass.async_block_till_done()
     assert hass.states.get(ENTITY_ID).attributes["preset_mode"] == "boost"
+
+
+async def test_no_deprecation_warnings(hass: HomeAssistant, mock_entry, caplog):
+    """Core warns when an integration uses deprecated entity members (e.g. 2026.11's
+    switch to native_* climate temperatures); none should mention this integration."""
+    await _setup(hass, mock_entry)
+    assert hass.states.get(ENTITY_ID).attributes["current_temperature"] == 20.6
+    deprecations = [
+        r.getMessage()
+        for r in caplog.records
+        if "atc_cala" in r.getMessage() and "deprecated" in r.getMessage()
+    ]
+    assert not deprecations

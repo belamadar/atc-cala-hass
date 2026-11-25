@@ -19,7 +19,7 @@ The reverse-engineered cloud protocol is documented in [`API.md`](API.md).
 ## Requirements
 
 - An ATC Cala account (the same email/password you use in the ATC Cala mobile app).
-- Home Assistant 2026.7 or newer.
+- Home Assistant 2026.11 or newer.
 
 ## Installation
 
