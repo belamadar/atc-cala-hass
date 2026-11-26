@@ -11,7 +11,12 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .const import CONF_INSTALLATION_ID
 from .coordinator import AtcCalaConfigEntry, AtcCalaDataUpdateCoordinator, options_requiring_reload
 
-PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.SELECT, Platform.SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.CLIMATE,
+    Platform.DATETIME,
+    Platform.SELECT,
+    Platform.SENSOR,
+]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: AtcCalaConfigEntry) -> bool:

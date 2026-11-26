@@ -7,8 +7,17 @@ from pyatccala import Radiator
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MANUFACTURER, MODEL
+from .const import DOMAIN, MANUFACTURER, MIN_TEMP, MODEL
 from .coordinator import AtcCalaDataUpdateCoordinator
+
+
+def manual_temperature(radiator: Radiator | None) -> float:
+    """Temperature for starting Manual mode: the last Manual setpoint, else the current target."""
+    if radiator is None:
+        return MIN_TEMP
+    if radiator.temp_forced is not None:
+        return radiator.temp_forced
+    return radiator.target_temperature or MIN_TEMP
 
 
 class AtcCalaEntity(CoordinatorEntity[AtcCalaDataUpdateCoordinator]):

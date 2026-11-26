@@ -20,13 +20,15 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 
 from .const import (
-    CONF_BOOST_MINUTES,
     CONF_INSTALLATION_ID,
     CONF_INSTALLATION_NAME,
+    CONF_MANUAL_HOURS,
     CONF_POLL_INTERVAL,
-    DEFAULT_BOOST_MINUTES,
+    DEFAULT_MANUAL_HOURS,
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
+    LEGACY_CONF_BOOST_MINUTES,
+    MAX_MANUAL_HOURS,
     MAX_POLL_INTERVAL,
     MIN_POLL_INTERVAL,
 )
@@ -131,7 +133,7 @@ class AtcCalaConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class AtcCalaOptionsFlow(OptionsFlow):
-    """Options: poll interval and boost duration.
+    """Options: poll interval and default Manual mode duration.
 
     Schedule helpers are linked per radiator with its "Schedule helper" select entity.
     """
@@ -142,7 +144,9 @@ class AtcCalaOptionsFlow(OptionsFlow):
         options = self.config_entry.options
         if user_input is not None:
             # Keep options managed elsewhere (the schedule helper links).
-            return self.async_create_entry(data={**options, **user_input})
+            data = {**options, **user_input}
+            data.pop(LEGACY_CONF_BOOST_MINUTES, None)
+            return self.async_create_entry(data=data)
         schema = vol.Schema(
             {
                 vol.Optional(
@@ -150,9 +154,9 @@ class AtcCalaOptionsFlow(OptionsFlow):
                     default=options.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL),
                 ): vol.All(cv.positive_int, vol.Range(min=MIN_POLL_INTERVAL, max=MAX_POLL_INTERVAL)),
                 vol.Optional(
-                    CONF_BOOST_MINUTES,
-                    default=options.get(CONF_BOOST_MINUTES, DEFAULT_BOOST_MINUTES),
-                ): vol.All(cv.positive_int, vol.Range(min=5, max=1440)),
+                    CONF_MANUAL_HOURS,
+                    default=options.get(CONF_MANUAL_HOURS, DEFAULT_MANUAL_HOURS),
+                ): vol.All(cv.positive_int, vol.Range(min=1, max=MAX_MANUAL_HOURS)),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

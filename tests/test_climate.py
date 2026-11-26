@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from freezegun.api import FrozenDateTimeFactory
+from pytest_homeassistant.common import async_fire_time_changed
 
 from homeassistant.components.climate import (
     ATTR_HVAC_MODE,
@@ -92,17 +94,46 @@ async def test_turn_off(hass: HomeAssistant, mock_entry, patch_client):
     assert hass.states.get(ENTITY_ID).state == HVACMode.OFF
 
 
-async def test_boost_preset(hass: HomeAssistant, mock_entry, patch_client):
+async def test_manual_preset(hass: HomeAssistant, mock_entry, patch_client):
+    """The app's Manual mode starts for the default duration (24 h) at the last Manual setpoint."""
+    await _setup(hass, mock_entry)
+    assert "manual" in hass.states.get(ENTITY_ID).attributes["preset_modes"]
+    assert "boost" not in hass.states.get(ENTITY_ID).attributes["preset_modes"]
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_PRESET_MODE,
+        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_PRESET_MODE: "manual"},
+        blocking=True,
+    )
+    assert patch_client.boost_calls == [(12345, ["000C01234567890"], 22.0, 24 * 60)]
+    await hass.async_block_till_done()
+    state = hass.states.get(ENTITY_ID)
+    assert state.attributes["preset_mode"] == "manual"
+    assert state.attributes["temperature"] == 22.0
+
+
+async def test_leaving_manual_clears_forced_mode(
+    hass: HomeAssistant, mock_entry, patch_client, freezer: FrozenDateTimeFactory
+):
     await _setup(hass, mock_entry)
     await hass.services.async_call(
         CLIMATE_DOMAIN,
         SERVICE_SET_PRESET_MODE,
-        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_PRESET_MODE: "boost"},
+        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_PRESET_MODE: "manual"},
         blocking=True,
     )
-    assert len(patch_client.boost_calls) == 1
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_PRESET_MODE,
+        {ATTR_ENTITY_ID: ENTITY_ID, ATTR_PRESET_MODE: "eco"},
+        blocking=True,
+    )
+    assert ("ModoForzado", "false") in patch_client.put_calls[-1][1]
+    # Back-to-back refresh requests are debounced; let the second one run.
+    freezer.tick(15)
+    async_fire_time_changed(hass)
     await hass.async_block_till_done()
-    assert hass.states.get(ENTITY_ID).attributes["preset_mode"] == "boost"
+    assert hass.states.get(ENTITY_ID).attributes["preset_mode"] == "eco"
 
 
 async def test_no_deprecation_warnings(hass: HomeAssistant, mock_entry, caplog):

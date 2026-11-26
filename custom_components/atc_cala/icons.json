@@ -1,0 +1,25 @@
+{
+  "entity": {
+    "climate": {
+      "radiator": {
+        "state_attributes": {
+          "preset_mode": {
+            "default": "mdi:radiator",
+            "state": {
+              "comfort": "mdi:sun-thermometer",
+              "eco": "mdi:leaf",
+              "anti_frost": "mdi:snowflake",
+              "schedule": "mdi:calendar-clock",
+              "manual": "mdi:bag-suitcase"
+            }
+          }
+        }
+      }
+    },
+    "datetime": {
+      "manual_until": {
+        "default": "mdi:bag-suitcase"
+      }
+    }
+  }
+}

@@ -23,18 +23,18 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import (
-    CONF_BOOST_MINUTES,
-    DEFAULT_BOOST_MINUTES,
+    CONF_MANUAL_HOURS,
+    DEFAULT_MANUAL_HOURS,
     MAX_TEMP,
     MIN_TEMP,
     MODE_TO_PRESET,
-    PRESET_BOOST,
+    PRESET_MANUAL,
     PRESET_MODES,
     PRESET_TO_MODE,
     TEMP_STEP,
 )
 from .coordinator import AtcCalaConfigEntry, AtcCalaDataUpdateCoordinator
-from .entity import AtcCalaEntity
+from .entity import AtcCalaEntity, manual_temperature
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -52,6 +52,7 @@ class AtcCalaClimate(AtcCalaEntity, ClimateEntity):
     """A single ATC Cala radiator as a climate entity."""
 
     _attr_name = None  # the device name is the entity name (has_entity_name)
+    _attr_translation_key = "radiator"
     _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]
     _attr_preset_modes = PRESET_MODES
@@ -102,7 +103,7 @@ class AtcCalaClimate(AtcCalaEntity, ClimateEntity):
         if radiator is None:
             return None
         if radiator.boost_active:
-            return PRESET_BOOST
+            return PRESET_MANUAL
         return MODE_TO_PRESET.get(radiator.mode)
 
     # -- commands (write) ----------------------------------------------------------
@@ -126,21 +127,14 @@ class AtcCalaClimate(AtcCalaEntity, ClimateEntity):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         radiator = self.radiator
-        if preset_mode == PRESET_BOOST:
-            temperature = (
-                radiator.temp_forced
-                if radiator and radiator.temp_forced is not None
-                else radiator.target_temperature
-                if radiator
-                else MIN_TEMP
-            )
-            await self._start_boost(temperature or MIN_TEMP)
+        if preset_mode == PRESET_MANUAL:
+            await self._start_manual(manual_temperature(radiator))
             return
         mode_letter = PRESET_TO_MODE.get(preset_mode)
         if mode_letter is None:
             raise ServiceValidationError(f"Unknown preset {preset_mode}")
         cambios: list[tuple[str, Any]] = [(FIELD_ENCENDIDO, True), (FIELD_MODE, mode_letter)]
-        # Leaving Boost: clear the forced overlay.
+        # Leaving Manual: clear the forced overlay.
         if radiator and radiator.boost_active:
             cambios.append((FIELD_MODO_FORZADO, False))
         await self._apply(cambios)
@@ -153,7 +147,7 @@ class AtcCalaClimate(AtcCalaEntity, ClimateEntity):
         if radiator is None:
             raise HomeAssistantError("Radiator is unavailable")
 
-        # Routes to the boost / Comfort / Eco setpoint (Eco is stored as an offset below
+        # Routes to the Manual / Comfort / Eco setpoint (Eco is stored as an offset below
         # Comfort); Anti-frost and Programa have no settable setpoint.
         try:
             await self.coordinator.client.async_set_target_temperature(radiator, temperature)
@@ -163,19 +157,20 @@ class AtcCalaClimate(AtcCalaEntity, ClimateEntity):
             raise HomeAssistantError(f"Failed to update radiator: {err}") from err
         await self.coordinator.async_request_refresh()
 
-    async def _start_boost(self, temperature: float) -> None:
-        minutes = self.coordinator.config_entry.options.get(
-            CONF_BOOST_MINUTES, DEFAULT_BOOST_MINUTES
+    async def _start_manual(self, temperature: float) -> None:
+        hours = self.coordinator.config_entry.options.get(
+            CONF_MANUAL_HOURS, DEFAULT_MANUAL_HOURS
         )
         try:
+            # pyatccala calls the app's Manual mode "boost".
             await self.coordinator.client.async_start_boost(
                 self.coordinator.installation_id,
                 [self._radiator_id],
                 temperature,
-                minutes,
+                hours * 60,
             )
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
         except AtcCalaConnectionError as err:
-            raise HomeAssistantError(f"Failed to start boost: {err}") from err
+            raise HomeAssistantError(f"Failed to start Manual mode: {err}") from err
         await self.coordinator.async_request_refresh()

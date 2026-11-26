@@ -133,10 +133,11 @@ async def test_options_flow_keeps_helper_links(hass: HomeAssistant, mock_entry, 
     await _setup(hass, mock_entry)
     result = await hass.config_entries.options.async_init(mock_entry.entry_id)
     await hass.config_entries.options.async_configure(
-        result["flow_id"], {"poll_interval": 120, "boost_minutes": 60}
+        result["flow_id"], {"poll_interval": 120, "manual_hours": 48}
     )
     await hass.async_block_till_done()
     assert mock_entry.options["poll_interval"] == 120
+    assert mock_entry.options["manual_hours"] == 48
     assert mock_entry.options[CONF_SCHEDULE_HELPERS] == {RAD_ID: HELPER}
 
 

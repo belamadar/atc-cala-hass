@@ -125,6 +125,8 @@ class FakeClient:
     async_set_eco_temperature = AtcCalaClient.async_set_eco_temperature
     async_set_eco_offset = AtcCalaClient.async_set_eco_offset
     async_set_boost_temperature = AtcCalaClient.async_set_boost_temperature
+    async_start_boost_until = AtcCalaClient.async_start_boost_until
+    _start_boost = AtcCalaClient._start_boost
     async_set_schedule = AtcCalaClient.async_set_schedule
 
     async def close(self):

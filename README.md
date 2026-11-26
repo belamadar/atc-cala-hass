@@ -2,7 +2,7 @@
 
 A native Home Assistant integration for **ATC Cala** WiFi electric radiators (Grupo Ferroli
 cloud). Adds a `climate` entity per radiator with target temperature, on/off, the four device
-modes as presets, and a timed Boost, plus schedule and energy sensors. Everything is set up
+modes as presets, and the app's Manual mode, plus schedule and energy sensors. Everything is set up
 through the UI; no MQTT or YAML is needed.
 
 [![Open in the Home Assistant Marketplace](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=belamadar&repository=atc-cala-hass&category=integration)
@@ -48,8 +48,8 @@ Everything is configured through the UI:
 
 - **Setup:** enter your ATC Cala email and password. The integration validates the login and
   discovers your installation automatically.
-- **Options** (⚙️ on the integration): polling interval (default 60 s) and default Boost duration
-  (default 60 min).
+- **Options** (⚙️ on the integration): polling interval (default 60 s) and how long Manual mode
+  lasts when it is started from the preset alone (default 24 hours).
 - **Re-authentication:** if your password changes, Home Assistant prompts you to re-enter it.
 
 ## Entities
@@ -59,15 +59,21 @@ One `climate` entity per radiator:
 | Feature | Source |
 |---|---|
 | Current temperature | `TempActual` |
-| Target temperature | active mode's setpoint / boost setpoint |
+| Target temperature | active mode's setpoint / Manual mode setpoint |
 | HVAC mode | `Encendido` → `heat` / `off` |
 | HVAC action | `Calentando` → `heating` / `idle` / `off` |
-| Preset | Comfort / Eco / Anti-frost / Schedule / **Boost** |
+| Preset | Comfort / Eco / Anti-frost / Schedule / **Manual** |
 
-Setting a temperature writes the setpoint that is in effect: the boost setpoint during a boost,
+Setting a temperature writes the setpoint that is in effect: the Manual setpoint in Manual mode,
 otherwise Comfort or Eco (Eco is stored as an offset below Comfort). In the **Schedule** preset it
-changes the setpoint of the current slot. Anti-frost is fixed at 7 °C. Boost applies a timed
-override whose expiry is computed from the cloud's own clock.
+changes the setpoint of the current slot. Anti-frost is fixed at 7 °C.
+
+**Manual** is the app's Manual mode (the suitcase icon): it holds a temperature until a date and
+time, up to about a year ahead, then the radiator returns to its previous mode. A **Manual mode
+until** `datetime` entity per radiator shows when it ends. Setting that entity starts Manual mode,
+or moves its end if it is already on. Picking the Manual preset alone starts it for the default
+duration from the options. Either way it uses the last Manual temperature, which you then change
+with the climate entity's target temperature.
 
 Two `sensor` entities per radiator describe its own weekly schedule: **Scheduled preset**
 (Comfort/Eco right now) and **Next schedule change** (timestamp, with the upcoming preset as an

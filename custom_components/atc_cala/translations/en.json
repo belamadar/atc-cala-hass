@@ -34,12 +34,32 @@
         "title": "ATC Cala options",
         "data": {
           "poll_interval": "Polling interval (seconds)",
-          "boost_minutes": "Default boost duration (minutes)"
+          "manual_hours": "Default Manual mode duration (hours)"
         }
       }
     }
   },
   "entity": {
+    "climate": {
+      "radiator": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "comfort": "Comfort",
+              "eco": "Eco",
+              "anti_frost": "Anti-frost",
+              "schedule": "Schedule",
+              "manual": "Manual"
+            }
+          }
+        }
+      }
+    },
+    "datetime": {
+      "manual_until": {
+        "name": "Manual mode until"
+      }
+    },
     "select": {
       "schedule_helper": {
         "name": "Schedule helper",

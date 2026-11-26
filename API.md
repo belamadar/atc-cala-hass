@@ -96,7 +96,7 @@ one level up.
 | `GET` | `/Zona?IdInstalacion={id}` | List zones within an installation |
 | `GET` | `/Radiador?IdInstalacion={id}&IdZona={z}` | List radiators + full state |
 | `PUT` | `/Radiador` | Apply changes to one or more radiators |
-| `GET` | `/GetHoraInstalacionExtra?IdInstalacion={id}&minutosAdd={m}` | Server clock (for scheduling / boost expiry) |
+| `GET` | `/GetHoraInstalacionExtra?IdInstalacion={id}&minutosAdd={m}` | Server clock (for scheduling / Manual mode expiry) |
 | `GET` | `/User?IdUsuario={idUser}` | User profile / account details |
 | `GET` | `/Language?ClientId=AppATC` | Supported UI languages |
 | `GET` | `/Instalacion/{id}/consumo/{period}` | Energy consumption (`diario`/`semanal`/`mensual`/`anual`) |
@@ -225,7 +225,7 @@ one object per radiator:
 - `TempEco` — **not a temperature**: the number of degrees Eco sits *below* Comfort (0.5–4.5,
   confirmed in the decompiled app: Eco setpoint = `TempComfort - TempEco`).
 - `TempAntiFrost` — Anti-frost setpoint, fixed at 7 °C (the app does not let you change it).
-- `TempForzado` — setpoint used while boost/forced mode is active.
+- `TempForzado` — setpoint used while Manual (forced) mode is active.
 - `DeltaTemperaturaSonda` — sensor calibration offset.
 
 **Mode** — `IdModoActual` is a single letter:
@@ -237,11 +237,12 @@ one object per radiator:
 | `A` | Anti-frost (Antihielo) | `TempAntiFrost` |
 | `P` | Programa (follow weekly schedule) | schedule → Comfort or Eco per slot |
 
-The app's UI also has a virtual mode `M` (manual/boost); it is never sent as `IdModoActual` —
-boost is driven by `ModoForzado`/`TiempoForzado` on top of the current mode.
+The app's UI also has a virtual mode `M`, shown as **Manual** with a suitcase icon; it is never
+sent as `IdModoActual`. It is driven by `ModoForzado`/`TiempoForzado` on top of the current mode.
+(Earlier notes, and pyatccala's method names, call it "boost"; the app has no boost mode.)
 
 `Encendido` (bool) is the master on/off, independent of mode. `ModoForzado` (bool) is a temporary
-boost overlay on top of the mode (see below). Mapping to HA: `Encendido=false` → HVAC `off`;
+Manual mode overlay on top of the mode (see below). Mapping to HA: `Encendido=false` → HVAC `off`;
 otherwise `heat`, with the four mode letters exposed as a preset/select.
 
 **Weekly schedule** — `ProgramacionL/M/X/J/V/S/D`, Spanish weekday initials:
@@ -261,13 +262,13 @@ Each is a **48-character string**, one char per 30-minute slot starting at 00:00
 When the radiator is in mode `P`, the active setpoint follows this map (Comfort slots →
 `TempComfort`, Eco slots → `TempEco`).
 
-**Boost / forced mode**
-- `ModoForzado` (bool) — whether a timed boost override is active.
-- `TempForzado` — the boost setpoint.
-- `TiempoForzado` — **Unix epoch seconds** at which the boost expires (e.g. `1797288174`). `"0"`
-  when never used; after a boost ends the server may keep a *past* value (and even
-  `ModoForzado=true`), so treat the boost as active only while `TiempoForzado > now`.
-  The app caps a boost at ~366 days and ends one early with just `ModoForzado=false`.
+**Manual mode (forced mode)** — the app's Manual mode: a temperature held until a date and time.
+- `ModoForzado` (bool) — whether Manual mode is on.
+- `TempForzado` — the Manual setpoint.
+- `TiempoForzado` — **Unix epoch seconds** at which Manual mode ends (e.g. `1797288174`). `"0"`
+  when never used; after it ends the server may keep a *past* value (and even
+  `ModoForzado=true`), so treat Manual mode as active only while `TiempoForzado > now`.
+  The app caps it at ~366 days and ends it early with just `ModoForzado=false`.
 - `DiasForzado` — days component (0 in captures).
 
 **Device / status flags**
@@ -338,9 +339,9 @@ Response echoes the request and adds a Firebase push descriptor:
 | `IdModoActual` | `"C"` / `"E"` / `"A"` / `"P"` | Set mode |
 | `TempComfort` | `"29.5"`, `"12"` | Comfort setpoint |
 | `TempEco` | `"4.5"`, `"0.5"` | Eco offset below Comfort (0.5–4.5) |
-| `TempForzado` | `"18"` | Boost setpoint |
-| `TiempoForzado` | `"1797288174"` | Boost expiry (Unix epoch s) |
-| `ModoForzado` | `"true"` | Enable/disable boost |
+| `TempForzado` | `"18"` | Manual setpoint |
+| `TiempoForzado` | `"1797288174"` | Manual mode end (Unix epoch s) |
+| `ModoForzado` | `"true"` | Enable/disable Manual mode |
 | `ProgramacionX` | 48-char `C`/`E` string | Overwrite one day's schedule |
 | `TecladoBloqueado` | `"true"` / `"false"` | Keypad lock |
 | `Brillo` | `"90"`, `"0"` | Display brightness |
@@ -361,7 +362,7 @@ Set Comfort mode at 21°C:
             {"Campo":"TempComfort","Valor":"21"}],"Zones":[],"Heaters":["<id>"]}
 ```
 
-Start a boost to 18°C until a given time (compute epoch via `GetHoraInstalacionExtra` + duration):
+Start Manual mode at 18°C until a given time (compute epoch via `GetHoraInstalacionExtra` + duration):
 ```json
 {"Cambios":[{"Campo":"TempForzado","Valor":"18"},{"Campo":"TiempoForzado","Valor":"1797288174"},
             {"Campo":"ModoForzado","Valor":"true"}],"Zones":[],"Heaters":["<id>"]}
@@ -384,8 +385,8 @@ Returns the server's current local time (as a bare JSON string), optionally shif
 ```
 
 `minutosAdd=0` → now; `minutosAdd=30` seen → now + 30 min. The app uses this to compute
-`TiempoForzado` (boost expiry) from the **server's** clock rather than the phone's, avoiding
-timezone/drift bugs. The integration should do the same: fetch server time, add the boost
+`TiempoForzado` (Manual mode end) from the **server's** clock rather than the phone's, avoiding
+timezone/drift bugs. The integration should do the same: fetch server time, add the Manual mode
 duration, convert to Unix epoch for `TiempoForzado`.
 
 ---
@@ -476,7 +477,7 @@ Daily energy consumption for an installation, broken down by hour. Note the path
   - `current_temperature`: `TempActual`; `target_temperature`: `TemperaturaConsignaCalculada`
     (or the mode's stored setpoint when editing).
   - `preset_mode`: Comfort / Eco / Anti-frost / Programa (the four `IdModoActual` letters),
-    plus a Boost preset driven by `ModoForzado`.
+    plus a Manual preset driven by `ModoForzado`.
   - Extra entities: keypad-lock switch (`TecladoBloqueado`), open-window binary sensor
     (`VentanasAbiertasStatus`), brightness number (`Brillo`), power-limit number (`LimitePotencia`),
     firmware/`Software` + connectivity (`Err_Offline`) as diagnostics.
